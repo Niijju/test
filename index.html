@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tide — Daily Water Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --deep: #0B2E3D;
+    --mid: #135D71;
+    --aqua: #4FD1C5;
+    --foam: #E8F6F3;
+    --coral: #FF8C69;
+    --line: rgba(232, 246, 243, 0.14);
+    --text-dim: rgba(232, 246, 243, 0.6);
+    --font-display: 'Fraunces', serif;
+    --font-body: 'Manrope', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: radial-gradient(ellipse at top, #123a4b 0%, var(--deep) 55%, #071c26 100%);
+    color: var(--foam);
+    font-family: var(--font-body);
+    min-height: 100vh;
+    padding: 48px 24px 80px;
+    display: flex;
+    justify-content: center;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .app {
+    width: 100%;
+    max-width: 880px;
+  }
+
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 40px;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--aqua);
+    margin-bottom: 8px;
+  }
+
+  h1 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(32px, 5vw, 44px);
+    letter-spacing: -0.01em;
+  }
+
+  .date {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  .goal-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  .goal-control input {
+    background: rgba(232, 246, 243, 0.06);
+    border: 1px solid var(--line);
+    color: var(--foam);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    width: 64px;
+    padding: 6px 8px;
+    border-radius: 6px;
+    text-align: right;
+  }
+
+  .goal-control input:focus {
+    outline: none;
+    border-color: var(--aqua);
+  }
+
+  main {
+    display: grid;
+    grid-template-columns: minmax(0, 300px) 1fr;
+    gap: 40px;
+  }
+
+  @media (max-width: 640px) {
+    main { grid-template-columns: 1fr; }
+  }
+
+  /* --- Signature element: the vessel --- */
+  .vessel-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .vessel {
+    position: relative;
+    width: 190px;
+    height: 300px;
+  }
+
+  .vessel svg { width: 100%; height: 100%; overflow: visible; }
+
+  .vessel-readout {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+  }
+
+  .vessel-amount {
+    font-family: var(--font-mono);
+    font-weight: 700;
+    font-size: 30px;
+    text-shadow: 0 2px 12px rgba(0,0,0,0.4);
+  }
+
+  .vessel-unit {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: rgba(11,46,61,0.7);
+    letter-spacing: 0.08em;
+    margin-top: -2px;
+  }
+
+  .vessel-percent {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--aqua);
+    letter-spacing: 0.08em;
+  }
+
+  .quick-add {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+  }
+
+  .chip {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--foam);
+    background: rgba(232, 246, 243, 0.06);
+    border: 1px solid var(--line);
+    padding: 9px 16px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+  }
+
+  .chip:hover {
+    background: rgba(79, 209, 197, 0.14);
+    border-color: var(--aqua);
+  }
+
+  .chip:active { transform: scale(0.95); }
+
+  .custom-add {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+    max-width: 240px;
+  }
+
+  .custom-add input {
+    flex: 1;
+    background: rgba(232, 246, 243, 0.06);
+    border: 1px solid var(--line);
+    color: var(--foam);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    padding: 9px 12px;
+    border-radius: 8px;
+    min-width: 0;
+  }
+
+  .custom-add input:focus { outline: none; border-color: var(--aqua); }
+
+  .custom-add button {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 700;
+    background: var(--aqua);
+    color: var(--deep);
+    border: none;
+    padding: 9px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: opacity 0.15s ease;
+  }
+
+  .custom-add button:hover { opacity: 0.85; }
+
+  /* --- Right column --- */
+  .panel {
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+  }
+
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .stat {
+    background: rgba(232, 246, 243, 0.03);
+    padding: 18px 16px;
+  }
+
+  .stat-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+
+  .stat-value {
+    font-family: var(--font-display);
+    font-size: 24px;
+    font-weight: 600;
+  }
+
+  .log-section h2 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 18px;
+    margin-bottom: 14px;
+    color: var(--foam);
+  }
+
+  .log-empty {
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--text-dim);
+    border: 1px dashed var(--line);
+    border-radius: 10px;
+    padding: 24px;
+    text-align: center;
+  }
+
+  .log-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 280px;
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+
+  .log-list::-webkit-scrollbar { width: 6px; }
+  .log-list::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
+
+  .log-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(232, 246, 243, 0.04);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 12px 14px;
+    animation: rise 0.25s ease;
+  }
+
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .log-item-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .log-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--aqua);
+    flex-shrink: 0;
+  }
+
+  .log-time {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  .log-amount {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  .log-remove {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 16px;
+    cursor: pointer;
+    padding: 0 4px;
+    line-height: 1;
+    transition: color 0.15s ease;
+  }
+
+  .log-remove:hover { color: var(--coral); }
+
+  .milestone {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--aqua);
+    text-align: center;
+    min-height: 16px;
+    letter-spacing: 0.03em;
+  }
+
+  footer {
+    text-align: center;
+    margin-top: 48px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 0.05em;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header>
+    <div>
+      <div class="eyebrow">Tide · Hydration Log</div>
+      <h1>Today's Intake</h1>
+      <div class="date" id="dateLabel"></div>
+    </div>
+    <div class="goal-control">
+      Daily goal
+      <input type="number" id="goalInput" value="2000" min="250" step="50">
+      ml
+    </div>
+  </header>
+
+  <main>
+    <div class="vessel-wrap">
+      <div class="vessel">
+        <svg viewBox="0 0 190 300" preserveAspectRatio="none" aria-hidden="true">
+          <defs>
+            <clipPath id="vesselClip">
+              <path d="M 20 10 L 170 10 L 158 280 Q 158 292 146 292 L 44 292 Q 32 292 32 280 Z" />
+            </clipPath>
+            <linearGradient id="waterGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#6FE3D6"/>
+              <stop offset="100%" stop-color="#2A9D9B"/>
+            </linearGradient>
+          </defs>
+
+          <!-- glass outline -->
+          <path d="M 20 10 L 170 10 L 158 280 Q 158 292 146 292 L 44 292 Q 32 292 32 280 Z"
+                fill="rgba(232,246,243,0.05)" stroke="rgba(232,246,243,0.35)" stroke-width="2"/>
+
+          <!-- water fill, clipped -->
+          <g clip-path="url(#vesselClip)">
+            <rect id="waterRect" x="10" y="292" width="170" height="0" fill="url(#waterGrad)"/>
+            <path id="waveFront" d="M 10 292 Q 47.5 282 85 292 T 160 292 T 235 292 V 320 H 10 Z" fill="url(#waterGrad)"/>
+            <path id="waveBack" d="M 10 292 Q 47.5 302 85 292 T 160 292 T 235 292 V 320 H 10 Z" fill="#3AB5AF" opacity="0.6"/>
+          </g>
+
+          <!-- goal marker lines every 25% -->
+          <line x1="20" y1="76" x2="170" y2="76" stroke="rgba(232,246,243,0.15)" stroke-width="1" stroke-dasharray="3 4"/>
+          <line x1="20" y1="151" x2="170" y2="151" stroke="rgba(232,246,243,0.15)" stroke-width="1" stroke-dasharray="3 4"/>
+          <line x1="20" y1="221" x2="170" y2="221" stroke="rgba(232,246,243,0.15)" stroke-width="1" stroke-dasharray="3 4"/>
+        </svg>
+        <div class="vessel-readout">
+          <div class="vessel-amount" id="amountText">0</div>
+          <div class="vessel-unit">ML LOGGED</div>
+          <div class="vessel-percent" id="percentText">0%</div>
+        </div>
+      </div>
+
+      <div class="milestone" id="milestoneText"></div>
+
+      <div class="quick-add" id="quickAdd"></div>
+
+      <div class="custom-add">
+        <input type="number" id="customAmount" placeholder="Custom ml" min="1">
+        <button id="customAddBtn">Add</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="stats-row">
+        <div class="stat">
+          <div class="stat-label">Logged</div>
+          <div class="stat-value" id="statLogged">0 ml</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Remaining</div>
+          <div class="stat-value" id="statRemaining">2000 ml</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Cups (250ml)</div>
+          <div class="stat-value" id="statCups">0.0</div>
+        </div>
+      </div>
+
+      <div class="log-section">
+        <h2>Log</h2>
+        <div id="logContainer">
+          <div class="log-empty">No entries yet — add your first glass.</div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer>Data resets when you reload this page — it isn't saved anywhere.</footer>
+</div>
+
+<script>
+(function () {
+  const state = {
+    goal: 2000,
+    entries: [] // { id, amount, time }
+  };
+
+  const quickAmounts = [150, 250, 330, 500];
+
+  const dateLabel = document.getElementById('dateLabel');
+  const goalInput = document.getElementById('goalInput');
+  const amountText = document.getElementById('amountText');
+  const percentText = document.getElementById('percentText');
+  const milestoneText = document.getElementById('milestoneText');
+  const waterRect = document.getElementById('waterRect');
+  const waveFront = document.getElementById('waveFront');
+  const waveBack = document.getElementById('waveBack');
+  const quickAddEl = document.getElementById('quickAdd');
+  const customAmount = document.getElementById('customAmount');
+  const customAddBtn = document.getElementById('customAddBtn');
+  const statLogged = document.getElementById('statLogged');
+  const statRemaining = document.getElementById('statRemaining');
+  const statCups = document.getElementById('statCups');
+  const logContainer = document.getElementById('logContainer');
+
+  const VESSEL_TOP = 10;
+  const VESSEL_BOTTOM = 292;
+
+  dateLabel.textContent = new Date().toLocaleDateString(undefined, {
+    weekday: 'long', month: 'long', day: 'numeric'
+  });
+
+  quickAmounts.forEach(ml => {
+    const btn = document.createElement('button');
+    btn.className = 'chip';
+    btn.textContent = '+' + ml + ' ml';
+    btn.addEventListener('click', () => addEntry(ml));
+    quickAddEl.appendChild(btn);
+  });
+
+  customAddBtn.addEventListener('click', () => {
+    const val = parseInt(customAmount.value, 10);
+    if (val > 0) {
+      addEntry(val);
+      customAmount.value = '';
+    }
+  });
+
+  customAmount.addEventListener('keydown', e => {
+    if (e.key === 'Enter') customAddBtn.click();
+  });
+
+  goalInput.addEventListener('change', () => {
+    const val = parseInt(goalInput.value, 10);
+    state.goal = val > 0 ? val : 2000;
+    render();
+  });
+
+  function addEntry(amount) {
+    state.entries.unshift({
+      id: Date.now() + Math.random(),
+      amount,
+      time: new Date()
+    });
+    render(true);
+  }
+
+  function removeEntry(id) {
+    state.entries = state.entries.filter(e => e.id !== id);
+    render();
+  }
+
+  function totalMl() {
+    return state.entries.reduce((sum, e) => sum + e.amount, 0);
+  }
+
+  function formatTime(d) {
+    return d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  }
+
+  let lastMilestone = 0;
+
+  function render(justAdded) {
+    const total = totalMl();
+    const pct = Math.min(total / state.goal, 1);
+    const remaining = Math.max(state.goal - total, 0);
+
+    amountText.textContent = total.toLocaleString();
+    percentText.textContent = Math.round(pct * 100) + '%';
+    statLogged.textContent = total.toLocaleString() + ' ml';
+    statRemaining.textContent = remaining.toLocaleString() + ' ml';
+    statCups.textContent = (total / 250).toFixed(1);
+
+    const fillHeight = pct * (VESSEL_BOTTOM - VESSEL_TOP);
+    const waterY = VESSEL_BOTTOM - fillHeight;
+    waterRect.setAttribute('y', waterY);
+    waterRect.setAttribute('height', fillHeight);
+    [waveFront, waveBack].forEach(el => {
+      el.setAttribute('d', `M 10 ${waterY} Q 47.5 ${waterY - 8} 85 ${waterY} T 160 ${waterY} T 235 ${waterY} V 320 H 10 Z`);
+    });
+
+    const amountTextEl = document.querySelector('.vessel-amount');
+    const percentTextEl = document.querySelector('.vessel-percent');
+    if (pct > 0.35) {
+      amountTextEl.style.color = 'var(--deep)';
+      document.querySelector('.vessel-unit').style.color = 'rgba(11,46,61,0.7)';
+      percentTextEl.style.color = 'rgba(11,46,61,0.85)';
+    } else {
+      amountTextEl.style.color = 'var(--foam)';
+      document.querySelector('.vessel-unit').style.color = 'var(--text-dim)';
+      percentTextEl.style.color = 'var(--aqua)';
+    }
+
+    if (pct >= 1 && lastMilestone < 1) {
+      milestoneText.textContent = "Goal reached — nicely hydrated.";
+    } else if (justAdded && pct < 1) {
+      milestoneText.textContent = `${remaining.toLocaleString()} ml to go`;
+    }
+    lastMilestone = pct;
+
+    if (state.entries.length === 0) {
+      logContainer.innerHTML = '<div class="log-empty">No entries yet — add your first glass.</div>';
+    } else {
+      logContainer.innerHTML = '';
+      const list = document.createElement('div');
+      list.className = 'log-list';
+      state.entries.forEach(e => {
+        const item = document.createElement('div');
+        item.className = 'log-item';
+        item.innerHTML = `
+          <div class="log-item-left">
+            <span class="log-dot"></span>
+            <span class="log-time">${formatTime(e.time)}</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:12px;">
+            <span class="log-amount">${e.amount.toLocaleString()} ml</span>
+            <button class="log-remove" title="Remove">×</button>
+          </div>
+        `;
+        item.querySelector('.log-remove').addEventListener('click', () => removeEntry(e.id));
+        list.appendChild(item);
+      });
+      logContainer.appendChild(list);
+    }
+  }
+
+  render();
+})();
+</script>
+
+</body>
+</html>
